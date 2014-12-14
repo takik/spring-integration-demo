@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-file="http://www.springframework.org/schema/integration/file"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/integration
+http://www.springframework.org/schema/integration/spring-integration.xsd
+http://www.springframework.org/schema/integration/file
+http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+http://www.springframework.org/schema/task
+http://www.springframework.org/schema/task/spring-task.xsd
+http://www.springframework.org/schema/integration/mail
+http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
+http://www.springframework.org/schema/util
+http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!--polling a folder each 5 seconds -->
+	<int-file:inbound-channel-adapter id="filesIn"
+		directory="file:input" filename-pattern="*.*"
+		prevent-duplicates="true">
+		<int:poller id="poller" fixed-rate="5000"
+			max-messages-per-poll="1" />
+	</int-file:inbound-channel-adapter>
+	<!-- Split input List<File> out put File -->
+	<int:splitter id="fileSplitter" input-channel="filesIn"
+		output-channel="singleFileChannel" />
+	<int:channel id="singleFileChannel" />
+	<!--Enrich the Header message with the extension information in order to 
+		root message later -->
+	<int:header-enricher id="HeaderEnricher" input-channel="singleFileChannel"
+		output-channel="bytesChannel">
+		<int:header name="file_extension"
+			expression="payload.getName().substring(payload.getName().lastIndexOf('.'))" />
+	</int:header-enricher>
+	<int:channel id="bytesChannel" />
+	<!-- Delete Source File and convert it into byte array -->
+	<int-file:file-to-bytes-transformer id="fileToData"
+		input-channel="bytesChannel" output-channel="routingChannel"
+		delete-files="true" />
+	
+	<int:channel id="routingChannel"/>
+	<!-- Messages Rooting based on the extension of input file -->
+	<int:header-value-router id="fileTypeRouter"
+		default-output-channel="otherFilesOut" header-name="file_extension"
+		input-channel="routingChannel" resolution-required="false">
+		<int:mapping value=".csv" channel="parallelMessageChannel" />
+	</int:header-value-router>
+	
+	<!-- Other files will be coppier to others folder -->
+	<int-file:outbound-channel-adapter
+		id="otherFilesOut" directory="file:others" delete-source-files="true" />
+	<!-- Parallel Run & Copying the message into multiple channel -->
+	<task:executor id="copyMessageExecutor" pool-size="10" />
+	<int:publish-subscribe-channel id="parallelMessageChannel"
+		task-executor="copyMessageExecutor" />
+	<!--Spring Integration Mail notify -->
+	<!-- First Suscriber to parallelMessageChannel Send Mail with the csv file 
+		in attachement -->
+	<int-mail:header-enricher id="mailEnricher" input-channel="parallelMessageChannel"
+		output-channel="notifyProcessingFile">
+		<int-mail:from value="tarak.commerce@gmail.com" />
+		<int-mail:subject
+			expression="'The Csv File: ' + headers.file_name +' was processed in success !'" />
+		<int-mail:to value="tarak.akik@gmail.com" />
+		<int-mail:attachment-filename expression="headers.file_name" />
+	</int-mail:header-enricher>
+	<int-mail:outbound-channel-adapter
+		id="notifyProcessingFile" host="smtp.gmail.com" username="tarak.commerce@gmail.com"
+		password="tarakcommerce" java-mail-properties="javaMailProperties" />
+	<util:properties id="javaMailProperties">
+		<prop key="mail.smtp.starttls.enable">true</prop>
+		<prop key="mail.debug">true</prop>
+		<prop key="mail.transport.protocol">smtp</prop>
+		<prop key="mail.smtp.host">smtp.gmail.com</prop>
+		<prop key="mail.smtp.port">587</prop>
+	</util:properties>
+	<!-- Second Suscriber to parallelMessageChannel Read CSV File Content -->
+	<int:service-activator id="printCsv" input-channel="parallelMessageChannel"
+		ref="csvFileReader" method="printCsv"/>
+	<!-- Third Suscriber to parallelMessageChannel Zip -->
+	<int:transformer input-channel="parallelMessageChannel" id="data2zip"
+		output-channel="zipFilesOut" ref="byteArrayToZipTransformer" method="zip" />
+	<!-- zip output files -->
+	<int-file:outbound-channel-adapter
+		id="zipFilesOut" directory="file:archive" delete-source-files="true" />
+	
+</beans>

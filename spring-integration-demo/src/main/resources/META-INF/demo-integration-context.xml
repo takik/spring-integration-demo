@@ -17,33 +17,31 @@ http://www.springframework.org/schema/integration/mail/spring-integration-mail.x
 http://www.springframework.org/schema/util
 http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!--polling a folder each 5 seconds -->
+	<!--polling the folder "file:input" each 5 seconds -->
 	<int-file:inbound-channel-adapter id="filesIn"
 		directory="file:input" filename-pattern="*.*" prevent-duplicates="true">
-		<int:poller id="poller" fixed-rate="5000"
-			max-messages-per-poll="1" />
+		<int:poller id="poller"  cron="0/5 * * * * *"
+			max-messages-per-poll="2" />
 	</int-file:inbound-channel-adapter>
 
+	<!-- Chaining the Message to # of steps: 1- Splitting Files, 2-Enrich the 
+		Header message,3-Delete Source File and convert it into byte array -->
 	<int:chain input-channel="filesIn" output-channel="routingChannel">
-		<!-- Split input List<File> out put File -->
 		<int:splitter id="fileSplitter" />
-		<!--Enrich the Header message with the extension information in order to 
-			root message later -->
 		<int:header-enricher id="HeaderEnricher">
 			<int:header name="file_extension"
 				expression="payload.getName().substring(payload.getName().lastIndexOf('.'))" />
 		</int:header-enricher>
-		<!-- Delete Source File and convert it into byte array -->
 		<int-file:file-to-bytes-transformer
 			id="fileToData" delete-files="true" />
 	</int:chain>
 
+	<!-- Logging messages coming to the routing channel -->
 	<int:channel id="routingChannel">
 		<int:interceptors>
 			<int:wire-tap channel="loggingChannel" />
 		</int:interceptors>
 	</int:channel>
-	<!-- Logging -->
 	<int:logging-channel-adapter id="loggingChannel"
 		level="INFO"
 		expression="'Processing file: ' + headers.file_name + ' (' + payload.length + ' bytes) '" />
@@ -55,16 +53,16 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		<int:mapping value=".csv" channel="parallelMessageChannel" />
 	</int:header-value-router>
 
-	<!-- Other files will be coppier to others folder -->
+	<!-- Other files will be copied to others folder -->
 	<int-file:outbound-channel-adapter
 		id="otherFilesOut" directory="file:others" delete-source-files="true" />
-	<!-- Parallel Run & Copying the message into multiple channel -->
-	<task:executor id="copyMessageExecutor" pool-size="10" />
+
+	<!-- Parallel Run & Copying the message into multiple channels -->
+	<task:executor id="copyMessageExecutor" pool-size="3" />
 	<int:publish-subscribe-channel id="parallelMessageChannel"
 		task-executor="copyMessageExecutor" />
-	<!--Spring Integration Mail notify -->
-	<!-- First Suscriber to parallelMessageChannel Send Mail with the csv file 
-		in attachement -->
+
+	<!-- First Subscriber : Send Mail with the CSV file in attachment -->
 	<int-mail:header-enricher id="mailEnricher"
 		input-channel="parallelMessageChannel" output-channel="notifyProcessingFile">
 		<int-mail:from value="tarak.commerce@gmail.com" />
@@ -83,14 +81,14 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		<prop key="mail.smtp.host">smtp.gmail.com</prop>
 		<prop key="mail.smtp.port">587</prop>
 	</util:properties>
-	<!-- Second Suscriber to parallelMessageChannel Read CSV File Content -->
+
+	<!-- Second Subscriber : Print CSV File Content -->
 	<int:service-activator id="printCsv"
 		input-channel="parallelMessageChannel" ref="csvFileReader" method="printCsv" />
-	<!-- Third Suscriber to parallelMessageChannel Zip -->
+	<!-- Third Subscriber : Archiving File -->
 	<int:transformer input-channel="parallelMessageChannel"
 		id="data2zip" output-channel="zipFilesOut" ref="byteArrayToZipTransformer"
 		method="zip" />
-	<!-- zip output files -->
 	<int-file:outbound-channel-adapter
 		id="zipFilesOut" directory="file:archive" delete-source-files="true" />
 

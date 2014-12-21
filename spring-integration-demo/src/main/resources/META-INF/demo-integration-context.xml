@@ -68,8 +68,8 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		<int-mail:attachment-filename expression="headers.file_name" />
 	</int-mail:header-enricher>
 	<int-mail:outbound-channel-adapter
-		id="notifyProcessingFile" host="smtp.gmail.com" username="tarak.commerce@gmail.com"
-		password="tarakcommerce" java-mail-properties="javaMailProperties" />
+		id="notifyProcessingFile" host="smtp.gmail.com" username="[CHANGE_IT]"
+		password="[CHANGE_IT]" java-mail-properties="javaMailProperties" />
 	<util:properties id="javaMailProperties">
 		<prop key="mail.smtp.starttls.enable">true</prop>
 		<prop key="mail.debug">true</prop>

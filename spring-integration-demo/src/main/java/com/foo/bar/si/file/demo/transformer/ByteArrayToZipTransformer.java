@@ -9,6 +9,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.support.MessageBuilder;
@@ -25,11 +27,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ByteArrayToZipTransformer {
+
+	private final Logger LOGGER = LoggerFactory
+			.getLogger(ByteArrayToZipTransformer.class);
+
 	@Transformer
-	public Message<byte[]> zip(final Message<byte[]> message)
-			throws Exception {
+	public Message<byte[]> zip(final Message<byte[]> message) throws Exception {
 		final String fileName = (String) message.getHeaders().get(
 				FileHeaders.FILENAME);
+		
 		final InputStream is = new ByteArrayInputStream(message.getPayload());
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		final ZipOutputStream zipOutput = new ZipOutputStream(out);
@@ -43,6 +49,9 @@ public class ByteArrayToZipTransformer {
 		}
 		IOUtils.copy(is, zipOutput);
 		zipOutput.close();
+		
+		LOGGER.info("File Archived {}", fileName + ".zip");
+		
 		final Message<byte[]> zipMessage = MessageBuilder
 				.withPayload(out.toByteArray())
 				.setHeader(FileHeaders.FILENAME, fileName + ".zip")

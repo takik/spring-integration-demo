@@ -20,8 +20,7 @@ public class CsvFileReader {
 	Logger logger = LoggerFactory.getLogger(CsvFileReader.class);
 
 	@ServiceActivator
-	public void printCsv(final Message<byte[]> message)
-			throws IOException {
+	public void printCsv(final Message<byte[]> message) throws IOException {
 
 		String fileName = (String) message.getHeaders().get(
 				FileHeaders.FILENAME);
@@ -33,13 +32,14 @@ public class CsvFileReader {
 
 		CSVReader reader = new CSVReader(new InputStreamReader(bais));
 
-		List<String[]> lignes = reader.readAll();
-		reader.close();
-
-		for (String[] s : lignes) {
-			for (String str : s)
-				System.out.println(str);
+		String[] line = null;
+		while ((line = reader.readNext()) != null) {
+			for (String s : line)
+				System.out.print(s+"\t");
+			System.out.println();
 		}
+
+		reader.close();
 
 	}
 

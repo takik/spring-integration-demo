@@ -18,7 +18,7 @@ import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
 /**
- * Custom Zip transformer
+ * Custom Zip transformer: Compressing Byte[] to File
  *
  * @author Tarak AKIK
  * @version 1.0

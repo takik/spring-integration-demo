@@ -9,22 +9,20 @@ import org.springframework.context.support.AbstractApplicationContext;
 
 import com.foo.bar.si.file.demo.context.SpringIntegrationFileDemoContext;
 
+
+/**
+ * DemoRunner : Start Demo
+ *
+ * @author Tarak AKIK
+ * @version 1.0
+ *
+ */
 public class DemoRunner {
 	private final static Logger LOGGER = LoggerFactory
 			.getLogger(DemoRunner.class);
 
 	public static void main(String[] args) {
 
-		if (LOGGER.isInfoEnabled()) {
-			LOGGER.info("\n========================================================="
-					+ "\n "
-					+ "\n Welcome to Spring File Demo Integration! "
-					+ "\n "
-					+ "\n For more information please visit: "
-					+ "\n http://www.tarakakik.wordpress/spring-integration "
-					+ "\n "
-					+ "\n=========================================================");
-		}
 		final AbstractApplicationContext context = new AnnotationConfigApplicationContext(
 				SpringIntegrationFileDemoContext.class);
 		context.registerShutdownHook();
@@ -32,9 +30,13 @@ public class DemoRunner {
 		if (LOGGER.isInfoEnabled()) {
 			LOGGER.info("\n========================================================="
 					+ "\n "
-					+ "\n Please press 'q + Enter' to quit the application. "
+					+ "\n Welcome to Spring File Demo Integration! "
+					+ "\n For more information please visit: "
+					+ "\n "			
+					+ "\n http://www.tarakakik.wordpress/"
 					+ "\n "
-					+ "\n=========================================================");
+					+ "\n Please press 'q + Enter' to quit the application. "
+					+ "\n===========================================================");
 		}
 		while (!scanner.hasNext("q")) {
 			// Do nothing unless user presses 'q' to quit.

@@ -4,7 +4,13 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 
-
+/**
+ * SpringIntegrationFileDemoContext : Java Config Clazz
+ *
+ * @author Tarak AKIK
+ * @version 1.0
+ *
+ */
 @Configuration
 @ComponentScan(basePackages={"com.foo.bar.si.file.demo.service.activators",
 							"com.foo.bar.si.file.demo.transformer"})

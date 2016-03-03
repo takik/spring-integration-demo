@@ -6,6 +6,7 @@ import java.net.URL;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,44 +17,61 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.foo.bar.si.file.demo.context.SpringIntegrationFileDemoContext;
 
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = SpringIntegrationFileDemoContext.class)
 public class FileDemoTest {
-	
+
 	@Autowired
 	private MessageChannel filesIn;
-	
+
+	private static String TARGET_PATH = FileDemoTest.class
+			.getProtectionDomain().getCodeSource().getLocation().getFile()
+			.replaceAll("test-classes", "");
+
 	@Test
-	public void textContextLoad(){
+	public void textContextLoad() {
 		Assert.assertNotNull(filesIn);
 	}
-	
-	
+
 	@Test
-	public void testRooting() throws URISyntaxException{
-		
-		URL fileUrl = this.getClass().getResource("/FILES/users.pdf");
-		File file = new File(fileUrl.toURI());
-        Assert.assertTrue(file.exists());
-		
-		boolean isSent=filesIn.send(MessageBuilder.withPayload(file).build());
-		
-		Assert.assertNotNull(FileUtils.getFile("/output/others/users.pdf"));
-	}
-	
-	
-	@Test
-	public void testIntegrate() throws URISyntaxException{
-		
-		URL fileUrl = this.getClass().getResource("/FILES/users.csv");
-		File file = new File(fileUrl.toURI());
-        Assert.assertTrue(file.exists());
-		
-		boolean isSent=filesIn.send(MessageBuilder.withPayload(file).build());
-		
-		Assert.assertNotNull(FileUtils.getFile("/output/archive/users.csv.zip"));
+	public void testRooting() throws URISyntaxException, InterruptedException {
+
+		File file =getFile("/FILES/users.pdf");
+		Assert.assertTrue(file.exists());
+
+		boolean isSent = filesIn.send(MessageBuilder.withPayload(file).build());
+		Assert.assertTrue(isSent);
+
+		Thread.sleep(2000);
+
+		File otherFile = FileUtils.getFile(TARGET_PATH + "/others/users.pdf");
+
+		Assert.assertTrue(otherFile.exists());
 	}
 
+	@Test
+	public void testIntegrate() throws InterruptedException, URISyntaxException {
+
+		File file = null;
+		file = getFile("/FILES/users.csv");
+
+		Assert.assertTrue(file.exists());
+
+		boolean isSent = filesIn.send(MessageBuilder.withPayload(file).build());
+		Assert.assertTrue(isSent);
+
+		Thread.sleep(2000);
+
+		File zipFile = FileUtils
+				.getFile(TARGET_PATH + "/archive/users.csv.zip");
+
+		Assert.assertNotNull(zipFile.exists());
+
+	}
+
+	private File getFile(String path) throws URISyntaxException {
+		URL fileUrl = this.getClass().getResource(path);
+		return new File(fileUrl.toURI());
+	}
 
 }

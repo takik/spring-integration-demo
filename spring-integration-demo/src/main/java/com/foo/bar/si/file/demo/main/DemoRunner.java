@@ -33,7 +33,7 @@ public class DemoRunner {
 					+ "\n Welcome to Spring File Demo Integration! "
 					+ "\n For more information please visit: "
 					+ "\n "			
-					+ "\n http://www.tarakakik.wordpress/"
+					+ "\n http://www.tarakakik.wordpress.com/"
 					+ "\n "
 					+ "\n Please press 'q + Enter' to quit the application. "
 					+ "\n===========================================================");
@@ -44,6 +44,7 @@ public class DemoRunner {
 		if (LOGGER.isInfoEnabled()) {
 			LOGGER.info("Exiting application...bye.");
 		}
+		scanner.close();
 		System.exit(0);
 	}
 

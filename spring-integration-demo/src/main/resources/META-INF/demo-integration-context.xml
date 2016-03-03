@@ -5,22 +5,23 @@
 	xmlns:task="http://www.springframework.org/schema/task" xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
 	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans
-http://www.springframework.org/schema/beans/spring-beans.xsd
-http://www.springframework.org/schema/integration
-http://www.springframework.org/schema/integration/spring-integration.xsd
-http://www.springframework.org/schema/integration/file
-http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
-http://www.springframework.org/schema/task
-http://www.springframework.org/schema/task/spring-task.xsd
-http://www.springframework.org/schema/integration/mail
-http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
-http://www.springframework.org/schema/util
-http://www.springframework.org/schema/util/spring-util.xsd">
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/integration
+	http://www.springframework.org/schema/integration/spring-integration.xsd
+	http://www.springframework.org/schema/integration/file
+	http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+	http://www.springframework.org/schema/task
+	http://www.springframework.org/schema/task/spring-task.xsd
+	http://www.springframework.org/schema/integration/mail
+	http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
+	http://www.springframework.org/schema/util
+	http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<!--polling the folder "file:input" each 5 seconds -->
 	<int-file:inbound-channel-adapter id="filesIn"
-		directory="file:input" filename-pattern="*.*" prevent-duplicates="true">
-		<int:poller id="poller"  cron="0/5 * * * * *"
+		directory="${project.build.directory}/input" filename-pattern="*.*"
+		prevent-duplicates="true">
+		<int:poller id="poller" cron="0/5 * * * * *"
 			max-messages-per-poll="2" />
 	</int-file:inbound-channel-adapter>
 
@@ -28,6 +29,9 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		Header message,3-Delete Source File and convert it into byte array -->
 	<int:chain input-channel="filesIn" output-channel="routingChannel">
 		<int:splitter id="fileSplitter" />
+		<!-- File with size > 10000 byte will be discarted -->
+		<int:filter id="bigFileFilter" expression="!(payload.length() >= 1000)"
+			discard-channel="bigFilesOut" />
 		<int:header-enricher id="HeaderEnricher">
 			<int:header name="file_extension"
 				expression="payload.getName().substring(payload.getName().lastIndexOf('.'))" />
@@ -35,6 +39,11 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		<int-file:file-to-bytes-transformer
 			id="fileToData" delete-files="true" />
 	</int:chain>
+
+
+	<int-file:outbound-channel-adapter
+		id="bigFilesOut" directory="${project.build.directory}/big"
+		delete-source-files="true" />
 
 	<!-- Logging messages coming to the routing channel -->
 	<int:channel id="routingChannel">
@@ -51,11 +60,17 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		default-output-channel="otherFilesOut" header-name="file_extension"
 		input-channel="routingChannel" resolution-required="false">
 		<int:mapping value=".csv" channel="parallelMessageChannel" />
+		<int:mapping value=".zip" channel="zipFileChannel" />
 	</int:header-value-router>
+
+	<int:channel id="zipFileChannel" />
+	<int:transformer input-channel="zipFileChannel" id="zip2csv"
+		output-channel="inputFilesOut" ref="zip2FileTransformer" method="unZip" />
 
 	<!-- Other files will be copied to others folder -->
 	<int-file:outbound-channel-adapter
-		id="otherFilesOut" directory="file:others" delete-source-files="true" />
+		id="otherFilesOut" directory="${project.build.directory}/others"
+		delete-source-files="true" />
 
 	<!-- Parallel Run & Copying the message into multiple channels -->
 	<task:executor id="copyMessageExecutor" pool-size="3" />
@@ -65,18 +80,18 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 	<!-- First Subscriber : Send Mail with the CSV file in attachment -->
 	<int-mail:header-enricher id="mailEnricher"
 		input-channel="parallelMessageChannel" output-channel="notifyProcessingFile">
-		<int-mail:from value="tarak.commerce@gmail.com" />
+		<int-mail:from value="mail@gmail.com" />
 		<int-mail:subject
 			expression="'The Csv File: ' + headers.file_name +' was processed in success !'" />
-		<int-mail:to value="tarak.akik@gmail.com" />
+		<int-mail:to value="mail@gmail.com" />
 		<int-mail:attachment-filename expression="headers.file_name" />
 	</int-mail:header-enricher>
 	<int-mail:outbound-channel-adapter
-		id="notifyProcessingFile" host="smtp.gmail.com" username="[CHANGE_IT]"
-		password="[CHANGE_IT]" java-mail-properties="javaMailProperties" />
+		id="notifyProcessingFile" host="smtp.gmail.com" username="mail@gmail.com"
+		password="password" java-mail-properties="javaMailProperties" />
 	<util:properties id="javaMailProperties">
 		<prop key="mail.smtp.starttls.enable">true</prop>
-		<prop key="mail.debug">true</prop>
+		<prop key="mail.debug">false</prop>
 		<prop key="mail.transport.protocol">smtp</prop>
 		<prop key="mail.smtp.host">smtp.gmail.com</prop>
 		<prop key="mail.smtp.port">587</prop>
@@ -90,6 +105,11 @@ http://www.springframework.org/schema/util/spring-util.xsd">
 		id="data2zip" output-channel="zipFilesOut" ref="byteArrayToZipTransformer"
 		method="zip" />
 	<int-file:outbound-channel-adapter
-		id="zipFilesOut" directory="file:archive" delete-source-files="true" />
+		id="zipFilesOut" directory="${project.build.directory}/archive"
+		delete-source-files="true" />
+
+	<int-file:outbound-channel-adapter
+		id="inputFilesOut" directory="${project.build.directory}/input"
+		delete-source-files="true" />
 
 </beans>

@@ -2,6 +2,7 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
 	xmlns:int-file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-zip="http://www.springframework.org/schema/integration/zip"
 	xmlns:task="http://www.springframework.org/schema/task" xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
 	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans
@@ -10,6 +11,8 @@
 	http://www.springframework.org/schema/integration/spring-integration.xsd
 	http://www.springframework.org/schema/integration/file
 	http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+	http://www.springframework.org/schema/integration/zip
+	http://www.springframework.org/schema/integration/zip/spring-integration-zip.xsd
 	http://www.springframework.org/schema/task
 	http://www.springframework.org/schema/task/spring-task.xsd
 	http://www.springframework.org/schema/integration/mail
@@ -32,14 +35,15 @@
 		<!-- File with size > 10000 byte will be discarted -->
 		<int:filter id="bigFileFilter" expression="!(payload.length() >= 1000)"
 			discard-channel="bigFilesOut" />
+
 		<int:header-enricher id="HeaderEnricher">
 			<int:header name="file_extension"
 				expression="payload.getName().substring(payload.getName().lastIndexOf('.'))" />
+			<int:header name="file_name" expression="payload.getName()" />
 		</int:header-enricher>
 		<int-file:file-to-bytes-transformer
 			id="fileToData" delete-files="true" />
 	</int:chain>
-
 
 	<int-file:outbound-channel-adapter
 		id="bigFilesOut" directory="${project.build.directory}/big"
@@ -64,8 +68,13 @@
 	</int:header-value-router>
 
 	<int:channel id="zipFileChannel" />
-	<int:transformer input-channel="zipFileChannel" id="zip2csv"
+
+	<int:transformer id="zip2file" input-channel="zipFileChannel"
 		output-channel="inputFilesOut" ref="zip2FileTransformer" method="unZip" />
+
+	<int-file:outbound-channel-adapter
+		id="inputFilesOut" directory="${project.build.directory}/input"
+		delete-source-files="true" />
 
 	<!-- Other files will be copied to others folder -->
 	<int-file:outbound-channel-adapter
@@ -100,16 +109,13 @@
 	<!-- Second Subscriber : Print CSV File Content -->
 	<int:service-activator id="printCsv"
 		input-channel="parallelMessageChannel" ref="csvFileReader" method="printCsv" />
+		
 	<!-- Third Subscriber : Archiving File -->
-	<int:transformer input-channel="parallelMessageChannel"
-		id="data2zip" output-channel="zipFilesOut" ref="byteArrayToZipTransformer"
+	<int:transformer id="archiver" input-channel="parallelMessageChannel"
+		output-channel="archiveFilesOut" ref="byteArrayToZipTransformer"
 		method="zip" />
 	<int-file:outbound-channel-adapter
-		id="zipFilesOut" directory="${project.build.directory}/archive"
-		delete-source-files="true" />
-
-	<int-file:outbound-channel-adapter
-		id="inputFilesOut" directory="${project.build.directory}/input"
+		id="archiveFilesOut" directory="${project.build.directory}/archive"
 		delete-source-files="true" />
 
 </beans>

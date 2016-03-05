@@ -24,13 +24,34 @@ public class FileDemoTest {
 	@Autowired
 	private MessageChannel filesIn;
 
-	private static String TARGET_PATH = FileDemoTest.class
+	private static final String TARGET_PATH = FileDemoTest.class
 			.getProtectionDomain().getCodeSource().getLocation().getFile()
 			.replaceAll("test-classes", "");
 
 	@Test
 	public void textContextLoad() {
 		Assert.assertNotNull(filesIn);
+	}
+	
+	@Test
+	public void testFilter() throws InterruptedException, URISyntaxException {
+
+		File file = null;
+		file = getFile("/FILES/bigFile.csv");
+
+		Assert.assertTrue(file.exists());
+		Assert.assertTrue(file.length()>1000);
+
+		boolean isSent = filesIn.send(MessageBuilder.withPayload(file).build());
+		Assert.assertTrue(isSent);
+
+		Thread.sleep(2000);
+
+		File bigFile = FileUtils
+				.getFile(TARGET_PATH + "/big/bigFile.csv");
+
+		Assert.assertNotNull(bigFile.exists());
+
 	}
 
 	@Test

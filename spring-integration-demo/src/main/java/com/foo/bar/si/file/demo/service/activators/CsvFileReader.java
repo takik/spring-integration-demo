@@ -25,7 +25,6 @@ public class CsvFileReader {
 
 	Logger logger = LoggerFactory.getLogger(CsvFileReader.class);
 
-	@ServiceActivator
 	public void printCsv(final Message<byte[]> message) throws IOException {
 
 		String fileName = (String) message.getHeaders().get(

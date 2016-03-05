@@ -31,7 +31,6 @@ public class ByteArrayToZipTransformer {
 	private final Logger LOGGER = LoggerFactory
 			.getLogger(ByteArrayToZipTransformer.class);
 
-	@Transformer
 	public Message<byte[]> zip(final Message<byte[]> message) throws Exception {
 		final String fileName = (String) message.getHeaders().get(
 				FileHeaders.FILENAME);

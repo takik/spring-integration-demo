@@ -2,6 +2,7 @@ package com.foo.bar.si.file.demo.transformer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -13,9 +14,9 @@ import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
 /**
- * Custom Zip transformer: Compressing Byte[] to File
+ * Zip2FileTransformer: Unzip Zip Byte Array to File
  *
- * @author Tarak AKIK
+ * @author ubuntu
  * @version 1.0
  *
  */
@@ -28,7 +29,7 @@ public class Zip2FileTransformer {
 	private static final int BUFFER_SIZE = 4096;
 
 	public Message<byte[]> unZip(final Message<byte[]> message)
-			throws Exception {
+			throws IOException {
 
 		String extractedFileName = null;
 

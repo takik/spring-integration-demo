@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ImportResource;
 /**
  * SpringIntegrationFileDemoContext : Java Config Clazz
  *
- * @author Tarak AKIK
+ * @author ubuntu
  * @version 1.0
  *
  */

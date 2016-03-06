@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 /**
  * Custom Zip transformer: Compressing Byte[] to File
  *
- * @author Tarak AKIK
+ * @author ubuntu
  * @version 1.0
  *
  */

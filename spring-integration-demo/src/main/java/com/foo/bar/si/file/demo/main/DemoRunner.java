@@ -13,7 +13,7 @@ import com.foo.bar.si.file.demo.context.SpringIntegrationFileDemoContext;
 /**
  * DemoRunner : Start Demo
  *
- * @author Tarak AKIK
+ * @author ubuntu
  * @version 1.0
  *
  */

@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
